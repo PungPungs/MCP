@@ -2,17 +2,18 @@ from typing import Any
 import httpx
 from mcp.server.fastmcp import FastMCP
 
+# Initialize FastMCP server
 mcp = FastMCP("weather")
 
+# Constants
 NWS_API_BASE = "https://api.weather.gov"
 USER_AGENT = "weather-app/1.0"
 
-
-async def make_nws_request(url : str) -> dict[str, Any] | None:
-    """Make a request to the NWS API wuth proper error handling"""
+async def make_nws_request(url: str) -> dict[str, Any] | None:
+    """Make a request to the NWS API with proper error handling."""
     headers = {
-        "User-Agent" : USER_AGENT,
-        "Accept" : "application/geo+json"
+        "User-Agent": USER_AGENT,
+        "Accept": "application/geo+json"
     }
     async with httpx.AsyncClient() as client:
         try:
@@ -22,9 +23,8 @@ async def make_nws_request(url : str) -> dict[str, Any] | None:
         except Exception:
             return None
 
-
-def format_alert(feature : dict) -> str:
-    """Format an alert feature into a readable string"""
+def format_alert(feature: dict) -> str:
+    """Format an alert feature into a readable string."""
     props = feature["properties"]
     return f"""
 Event: {props.get('event', 'Unknown')}
@@ -35,23 +35,23 @@ Instructions: {props.get('instruction', 'No specific instructions provided')}
 """
 
 @mcp.tool()
-async def get_alerts(state : str) -> str:
+async def get_alerts(state: str) -> str:
     """Get weather alerts for a US state.
 
     Args:
         state: Two-letter US state code (e.g. CA, NY)
     """
-    url = f"{NWS_API_BASE}/alters/active/area/{state}"
+    url = f"{NWS_API_BASE}/alerts/active/area/{state}"
     data = await make_nws_request(url)
 
-    if not data or "feature" not in data:
-        return "Unable to fetch alerts or no alters found"
+    if not data or "features" not in data:
+        return "Unable to fetch alerts or no alerts found."
 
     if not data["features"]:
-        return ":No active alerts for this state"
+        return "No active alerts for this state."
 
-    alters = [format_alert(feature) for feature in data["feature"]]
-    return "\n---\n".join(alters)
+    alerts = [format_alert(feature) for feature in data["features"]]
+    return "\n---\n".join(alerts)
 
 @mcp.tool()
 async def get_forecast(latitude: float, longitude: float) -> str:
@@ -90,7 +90,8 @@ Forecast: {period['detailedForecast']}
     return "\n---\n".join(forecasts)
 
 def main():
-    mcp.run(transport='stdio')
+    # Initialize and run the server
+    mcp.run(transport='stdio')    
 
 if __name__ == "__main__":
     main()
